@@ -1,6 +1,18 @@
 { pkgs, ... }:
 
 {
+  # Native headers required by Fyne (OpenGL + X11).
+  packages = with pkgs; [
+    pkg-config
+    libGL
+    libx11
+    libxcursor
+    libxrandr
+    libxinerama
+    libxi
+    libxxf86vm
+  ];
+
   languages = {
     go = {
       enable = true;
