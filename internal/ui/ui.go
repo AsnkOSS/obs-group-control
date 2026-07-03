@@ -42,6 +42,7 @@ func New(controller *obs.Controller) *App {
 		controller: controller,
 		lang:       LangZH,
 	}
+	a.fyneApp.Settings().SetTheme(newTheme())
 	a.window = a.fyneApp.NewWindow(translations[a.lang].windowTitle)
 	a.store = state.NewStore(controller.DeviceCount(), a.render)
 	a.buildUI()
@@ -52,22 +53,22 @@ func New(controller *obs.Controller) *App {
 
 // Run shows the window and blocks until it is closed.
 func (a *App) Run() {
-	a.window.Resize(fyne.NewSize(520, 400))
+	a.window.Resize(fyne.NewSize(600, 460))
 	a.window.ShowAndRun()
 }
 
 func (a *App) buildUI() {
 	a.titleText = canvas.NewText("", color.White)
-	a.titleText.TextSize = 30
+	a.titleText.TextSize = 34
 	a.titleText.TextStyle = fyne.TextStyle{Bold: true}
 	a.titleText.Alignment = fyne.TextAlignCenter
 
 	a.subtitleText = canvas.NewText("", color.NRGBA{R: 0xB0, G: 0xB0, B: 0xB0, A: 0xFF})
-	a.subtitleText.TextSize = 15
+	a.subtitleText.TextSize = 17
 	a.subtitleText.Alignment = fyne.TextAlignCenter
 
 	a.statusText = canvas.NewText("", color.White)
-	a.statusText.TextSize = 26
+	a.statusText.TextSize = 30
 	a.statusText.TextStyle = fyne.TextStyle{Bold: true}
 	a.statusText.Alignment = fyne.TextAlignCenter
 
@@ -75,7 +76,7 @@ func (a *App) buildUI() {
 	a.countLabel.Alignment = fyne.TextAlignCenter
 
 	a.failedText = canvas.NewText("", color.NRGBA{R: 0xE5, G: 0x39, B: 0x35, A: 0xFF})
-	a.failedText.TextSize = 14
+	a.failedText.TextSize = 16
 	a.failedText.Alignment = fyne.TextAlignCenter
 
 	a.msgLabel = widget.NewLabel("")
