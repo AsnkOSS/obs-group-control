@@ -4,7 +4,6 @@ package main
 
 import (
 	"flag"
-	"log"
 
 	"obs-group-control/internal/config"
 	"obs-group-control/internal/obs"
@@ -17,7 +16,9 @@ func main() {
 
 	devices, err := config.LoadDevices(*configPath)
 	if err != nil {
-		log.Fatalf("load devices: %v", err)
+		// GUI builds have no console, so report the error in a window.
+		ui.RunConfigError(*configPath, err)
+		return
 	}
 
 	controller := obs.NewController(devices)
