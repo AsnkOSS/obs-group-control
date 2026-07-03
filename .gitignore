@@ -11,3 +11,6 @@ devenv.local.yaml
 
 # nodejs
 node_modules
+
+# build output
+dist/
