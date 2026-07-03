@@ -15,21 +15,77 @@ import (
 const (
 	verifyTimeout  = 10 * time.Second
 	verifyInterval = 300 * time.Millisecond
+	retryInterval  = 2 * time.Second
+	probeInterval  = 5 * time.Second
 )
 
 // Controller drives recording on all configured devices.
 type Controller struct {
 	devices []config.Device
+
+	mu     sync.Mutex
+	down   map[string]bool // device addr -> currently unreachable
+	onDown func(int)       // notified when the failed count changes
 }
 
 // NewController creates a controller for the given devices.
 func NewController(devices []config.Device) *Controller {
-	return &Controller{devices: devices}
+	return &Controller{
+		devices: devices,
+		down:    make(map[string]bool),
+	}
 }
 
 // DeviceCount returns the number of configured devices.
 func (c *Controller) DeviceCount() int {
 	return len(c.devices)
+}
+
+// StartMonitor launches one goroutine per device that keeps probing the
+// OBS connection. Unreachable devices are retried until they come back;
+// onDown receives the current number of failed devices on every change.
+func (c *Controller) StartMonitor(onDown func(int)) {
+	c.mu.Lock()
+	c.onDown = onDown
+	c.mu.Unlock()
+
+	for _, d := range c.devices {
+		go func(d config.Device) {
+			for {
+				client, err := connect(d)
+				if err != nil {
+					c.setDown(d.Addr, true)
+					time.Sleep(retryInterval)
+					continue
+				}
+				client.Disconnect()
+				c.setDown(d.Addr, false)
+				time.Sleep(probeInterval)
+			}
+		}(d)
+	}
+}
+
+// setDown records reachability for one device and reports the new
+// failed count if it changed.
+func (c *Controller) setDown(addr string, down bool) {
+	c.mu.Lock()
+	if c.down[addr] == down {
+		c.mu.Unlock()
+		return
+	}
+	c.down[addr] = down
+	count := 0
+	for _, isDown := range c.down {
+		if isDown {
+			count++
+		}
+	}
+	cb := c.onDown
+	c.mu.Unlock()
+	if cb != nil {
+		cb(count)
+	}
 }
 
 // StartAll connects to every device, starts recording, and blocks until
@@ -77,9 +133,11 @@ func (c *Controller) forEach(op func(*goobs.Client, config.Device) error) error 
 			defer wg.Done()
 			client, err := connect(d)
 			if err != nil {
+				c.setDown(d.Addr, true)
 				errs[i] = fmt.Errorf("%s: connect: %w", d.Addr, err)
 				return
 			}
+			c.setDown(d.Addr, false)
 			defer client.Disconnect()
 			errs[i] = op(client, d)
 		}(i, d)

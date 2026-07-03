@@ -35,6 +35,7 @@ func (p Phase) String() string {
 type Snapshot struct {
 	Phase       Phase
 	DeviceCount int
+	FailedCount int
 	Message     string
 }
 
@@ -65,6 +66,22 @@ func (s *Store) Set(phase Phase, message string) {
 	s.mu.Lock()
 	s.snapshot.Phase = phase
 	s.snapshot.Message = message
+	snap := s.snapshot
+	cb := s.onChange
+	s.mu.Unlock()
+	if cb != nil {
+		cb(snap)
+	}
+}
+
+// SetFailedCount updates the number of unreachable devices.
+func (s *Store) SetFailedCount(n int) {
+	s.mu.Lock()
+	if s.snapshot.FailedCount == n {
+		s.mu.Unlock()
+		return
+	}
+	s.snapshot.FailedCount = n
 	snap := s.snapshot
 	cb := s.onChange
 	s.mu.Unlock()
