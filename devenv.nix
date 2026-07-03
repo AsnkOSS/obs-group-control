@@ -1,7 +1,6 @@
 { pkgs, ... }:
 
 {
-  # Native headers required by Fyne (OpenGL + X11).
   packages = with pkgs; [
     pkg-config
     libGL
